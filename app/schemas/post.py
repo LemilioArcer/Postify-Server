@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import SQLModel
 
 class PostCreate(SQLModel):
     description: str
@@ -10,11 +10,9 @@ class PostCreate(SQLModel):
 class PostRead(SQLModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    description:str
-    created_at:datetime
+    description: str
+    created_at: datetime
 
 class PostUpdate(SQLModel):
-    id: uuid.UUID
-    user_id: uuid.UUID
-    new_description:str
-    created_at:datetime 
+    description: str | None = None
+    user_id: uuid.UUID | None = None
