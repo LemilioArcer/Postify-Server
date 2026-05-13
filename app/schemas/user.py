@@ -3,7 +3,6 @@ import uuid
 
 from sqlmodel import SQLModel
 
-
 class UserCreate(SQLModel):
     username: str
     name: str
