@@ -1,7 +1,8 @@
 from datetime import datetime
 import uuid
-
-from sqlmodel import SQLModel
+from sqlmodel import Field, SQLModel
+from app.schemas.comment import CommentRead
+from app.schemas.like import LikeRead
 
 class PostCreate(SQLModel):
     description: str
@@ -12,6 +13,16 @@ class PostRead(SQLModel):
     user_id: uuid.UUID
     description: str
     created_at: datetime
+    likes_count: int = 0
+    comments_count: int = 0
+
+class PostReadDetails(SQLModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    description: str
+    created_at: datetime
+    likes: list[LikeRead] = Field(default_factory=list)
+    comments: list[CommentRead] = Field(default_factory=list)
 
 class PostUpdate(SQLModel):
     description: str | None = None

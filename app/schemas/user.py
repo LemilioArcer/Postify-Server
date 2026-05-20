@@ -10,6 +10,13 @@ class UserCreate(SQLModel):
     email: str
     password: str
 
+class UserUpdate(SQLModel):
+    username: str | None = None
+    name: str | None = None
+    lastname: str | None = None
+    email: str | None = None
+    password: str | None = None
+
 class UserRead(SQLModel):
     id: uuid.UUID
     username: str
@@ -17,9 +24,3 @@ class UserRead(SQLModel):
     lastname: str
     email: str
     created_at: datetime
-
-class UserUpdate(SQLModel):
-    username: str | None = None
-    name: str | None = None
-    lastname: str | None = None
-    email: str | None = None
