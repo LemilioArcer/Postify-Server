@@ -1,9 +1,21 @@
 import uuid
+from typing import List
 
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Response,
+    status,
+    Form,
+    File,
+    UploadFile
+)
+
 from sqlmodel import select
 
 from app.db.session import get_session
@@ -12,9 +24,12 @@ from app.models.images import Image
 from app.models.like import Like
 from app.models.post import Post
 from app.models.user import User
+
 from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.like import LikeCreate, LikeRead
 from app.schemas.post import PostCreate, PostRead, PostReadDetails, PostUpdate
+
+from app.services.cloudinary_service import cloudinary_service
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -44,24 +59,45 @@ async def get_post_by_id(post_id: uuid.UUID, session: AsyncSession = Depends(get
         comments=[CommentRead(**comment.model_dump()) for comment in comments],
     )
 
-@router.post("/", response_model=PostRead, status_code=201)
-async def create_post(data: PostCreate, session: AsyncSession = Depends(get_session)):
-    existing_user = await session.get(User, data.user_id)
-    if not existing_user:
-        raise HTTPException(status_code=404, detail="User not found")
+@router.post('/', response_model=PostRead, status_code=201)
+async def create_post(
+    user_id: str = Form(...),
+    description: str = Form(...),
+    files: List[UploadFile] = File(default=[]),
+    session: AsyncSession = Depends(get_session)):
 
-    post = Post(**data.model_dump())
+    post = Post(description=description, user_id=user_id)
     session.add(post)
-    try:
+    await session.commit()
+    await session.refresh(post)
+
+    images: list = []
+    if files and files[0].filename:
+        for file in files:
+            cloud_res = await cloudinary_service.upload_image(
+                file,
+                folder=f"postify/posts/{post.id}"
+            )
+
+            image = Image(
+                url=cloud_res["url"],
+                public_id=cloud_res["public_id"],
+                post_id=post.id
+            )
+
+            session.add(image)
+            images.append()
         await session.commit()
-        await session.refresh(post)
-    except IntegrityError:
-        await session.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot create post: invalid user_id or bad post data",
-        )
-    return post
+
+        return PostRead(
+        id=post.id,
+        user_id=post.user_id,
+        description=post.description,
+        created_at=post.created_at,
+        images=images,
+        likes_count=0,
+        comments_count=0
+    )
 
 @router.patch("/{post_id}", response_model=PostRead)
 async def update_post(
